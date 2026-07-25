@@ -1,0 +1,2082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Varad Vinayak CHS – Maintenance Tracker</title>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #f0f4f8;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .app-container {
+            max-width: 1300px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 28px;
+            box-shadow: 0 20px 60px rgba(0, 20, 30, 0.12);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 90vh;
+        }
+
+        /* ===== HEADER ===== */
+        .app-header {
+            background: linear-gradient(145deg, #0b3b3c, #1a5f5f);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            border-bottom: 2px solid #2e8b8b;
+        }
+
+        .app-header h1 {
+            color: #ffffff;
+            font-size: 1.6rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .app-header h1 i {
+            color: #b2e6e6;
+            font-size: 1.8rem;
+        }
+
+        .app-header .subtitle {
+            color: #b2d9d9;
+            font-size: 0.9rem;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .header-actions .current-date {
+            color: #d4f0f0;
+            background: rgba(255, 255, 255, 0.12);
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* ===== TAB NAVIGATION ===== */
+        .tab-nav {
+            display: flex;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0 20px;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 14px 22px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #4a5568;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .tab-btn i {
+            font-size: 1.1rem;
+            color: #718096;
+        }
+
+        .tab-btn:hover {
+            background: #edf2f7;
+            color: #1a5f5f;
+        }
+
+        .tab-btn.active {
+            color: #0b3b3c;
+            border-bottom-color: #1a5f5f;
+            background: #ffffff;
+        }
+
+        .tab-btn.active i {
+            color: #1a5f5f;
+        }
+
+        /* ===== TAB CONTENT ===== */
+        .tab-content {
+            padding: 28px 30px;
+            flex: 1;
+            background: #ffffff;
+        }
+
+        .tab-pane {
+            display: none;
+            animation: fadeUp 0.3s ease;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        @keyframes fadeUp {
+            0% {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== CARDS ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 18px 22px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+            border: 1px solid #edf2f7;
+            transition: 0.2s;
+        }
+
+        .stat-card:hover {
+            border-color: #cbd5e1;
+        }
+
+        .stat-card .label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #718096;
+            font-weight: 600;
+        }
+
+        .stat-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #1a202c;
+            margin-top: 4px;
+        }
+
+        .stat-card .value.positive {
+            color: #0b7e3d;
+        }
+        .stat-card .value.negative {
+            color: #b91c1c;
+        }
+        .stat-card .value.warning {
+            color: #b45309;
+        }
+
+        .stat-card .sub {
+            font-size: 0.8rem;
+            color: #718096;
+            margin-top: 2px;
+        }
+
+        /* ===== TABLES & LISTS ===== */
+        .table-wrap {
+            overflow-x: auto;
+            margin-top: 12px;
+            border-radius: 12px;
+            border: 1px solid #edf2f7;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.92rem;
+        }
+
+        th {
+            background: #f7fafc;
+            color: #2d3748;
+            font-weight: 600;
+            text-align: left;
+            padding: 12px 16px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        td {
+            padding: 10px 16px;
+            border-bottom: 1px solid #edf2f7;
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: #fafcff;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 14px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .badge.success {
+            background: #d4edda;
+            color: #0b5e2e;
+        }
+
+        .badge.danger {
+            background: #f8d7da;
+            color: #9b1c2c;
+        }
+
+        .badge.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 18px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: #1a5f5f;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #0b4a4a;
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: #0b7e3d;
+            color: #fff;
+        }
+        .btn-success:hover {
+            background: #096633;
+        }
+
+        .btn-danger {
+            background: #b91c1c;
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #991515;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1.5px solid #cbd5e1;
+            color: #2d3748;
+        }
+        .btn-outline:hover {
+            background: #f1f5f9;
+        }
+
+        .btn-sm {
+            padding: 4px 12px;
+            font-size: 0.78rem;
+        }
+
+        .btn-icon {
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: transparent;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            color: #4a5568;
+            transition: 0.2s;
+        }
+        .btn-icon:hover {
+            background: #edf2f7;
+            border-color: #a0aec0;
+        }
+
+        .toggle-paid {
+            cursor: pointer;
+            font-size: 1.3rem;
+            transition: 0.2s;
+            background: none;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+        .toggle-paid:hover {
+            background: #edf2f7;
+        }
+        .toggle-paid.paid {
+            color: #0b7e3d;
+        }
+        .toggle-paid.unpaid {
+            color: #b91c1c;
+        }
+
+        /* ===== FORMS ===== */
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px 20px;
+            align-items: flex-end;
+            margin-bottom: 20px;
+            background: #f8fafc;
+            padding: 18px 22px;
+            border-radius: 14px;
+            border: 1px solid #edf2f7;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1 1 160px;
+        }
+
+        .form-group label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #4a5568;
+            letter-spacing: 0.3px;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 8px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.92rem;
+            background: #ffffff;
+            transition: 0.2s;
+            outline: none;
+            width: 100%;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #1a5f5f;
+            box-shadow: 0 0 0 3px rgba(26, 95, 95, 0.15);
+        }
+
+        .form-group .input-hint {
+            font-size: 0.7rem;
+            color: #a0aec0;
+        }
+
+        /* ===== MONTHLY RECORDS ===== */
+        .month-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .month-selector select,
+        .month-selector input {
+            padding: 8px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.92rem;
+            background: #fff;
+            outline: none;
+        }
+
+        .month-selector select:focus,
+        .month-selector input:focus {
+            border-color: #1a5f5f;
+            box-shadow: 0 0 0 3px rgba(26, 95, 95, 0.12);
+        }
+
+        .member-payment-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 4px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .member-payment-row .member-name {
+            font-weight: 500;
+            color: #1a202c;
+            flex: 1;
+        }
+
+        .member-payment-row .payment-status {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .member-payment-row .payment-status .amount {
+            font-weight: 600;
+            color: #2d3748;
+            min-width: 70px;
+            text-align: right;
+        }
+
+        /* ===== EXPENSES ===== */
+        .expense-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 4px;
+            border-bottom: 1px solid #f1f5f9;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .expense-item .expense-detail {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .expense-item .expense-detail .date {
+            color: #718096;
+            font-size: 0.8rem;
+        }
+
+        .expense-item .expense-detail .desc {
+            font-weight: 500;
+        }
+
+        .expense-item .expense-detail .category {
+            font-size: 0.75rem;
+            background: #edf2f7;
+            padding: 2px 12px;
+            border-radius: 20px;
+            color: #4a5568;
+        }
+
+        .expense-item .expense-amount {
+            font-weight: 600;
+            color: #b91c1c;
+        }
+
+        .expense-item .expense-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .total-expenses {
+            font-size: 1.05rem;
+            font-weight: 600;
+            padding: 14px 16px;
+            background: #fafcff;
+            border-radius: 10px;
+            margin-top: 12px;
+            border: 1px solid #edf2f7;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        /* ===== REPORTS ===== */
+        .report-card {
+            background: #fafcff;
+            border-radius: 14px;
+            padding: 18px 22px;
+            border: 1px solid #edf2f7;
+            margin-bottom: 18px;
+        }
+
+        .report-card h3 {
+            font-size: 1rem;
+            color: #2d3748;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .report-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px dashed #edf2f7;
+            font-size: 0.9rem;
+        }
+
+        .report-row .label {
+            color: #4a5568;
+        }
+        .report-row .value {
+            font-weight: 600;
+            color: #1a202c;
+        }
+        .report-row .value.positive {
+            color: #0b7e3d;
+        }
+        .report-row .value.negative {
+            color: #b91c1c;
+        }
+
+        .member-report-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .member-report-item {
+            background: #ffffff;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 1px solid #edf2f7;
+            text-align: center;
+        }
+
+        .member-report-item .name {
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        .member-report-item .stats {
+            font-size: 0.8rem;
+            color: #4a5568;
+            margin-top: 4px;
+        }
+
+        .member-report-item .stats .paid-count {
+            color: #0b7e3d;
+        }
+        .member-report-item .stats .unpaid-count {
+            color: #b91c1c;
+        }
+
+        /* ===== SETTINGS ===== */
+        .settings-group {
+            background: #fafcff;
+            padding: 20px 24px;
+            border-radius: 14px;
+            border: 1px solid #edf2f7;
+            margin-bottom: 20px;
+        }
+
+        .settings-group h3 {
+            font-size: 1rem;
+            color: #2d3748;
+            margin-bottom: 14px;
+        }
+
+        .settings-group .setting-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px 24px;
+            align-items: center;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 760px) {
+            .app-header {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 16px 20px;
+            }
+            .app-header h1 {
+                font-size: 1.3rem;
+            }
+            .tab-nav {
+                padding: 0 12px;
+                gap: 2px;
+            }
+            .tab-btn {
+                padding: 10px 14px;
+                font-size: 0.82rem;
+            }
+            .tab-btn span {
+                display: none;
+            }
+            .tab-content {
+                padding: 16px 14px;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            .stat-card .value {
+                font-size: 1.4rem;
+            }
+            .form-row {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 14px 16px;
+            }
+            .form-group {
+                flex: 1 1 auto;
+            }
+            .member-payment-row {
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+            .member-payment-row .payment-status {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .expense-item {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .expense-item .expense-detail {
+                flex-wrap: wrap;
+            }
+            .expense-item .expense-actions {
+                justify-content: flex-end;
+            }
+            .month-selector {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .report-card {
+                padding: 14px 16px;
+            }
+            .member-report-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .settings-group {
+                padding: 14px 16px;
+            }
+        }
+
+        @media (max-width: 450px) {
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            .stat-card {
+                padding: 12px 14px;
+            }
+            .stat-card .value {
+                font-size: 1.2rem;
+            }
+            .tab-btn {
+                font-size: 0.75rem;
+                padding: 8px 10px;
+            }
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+
+        /* ===== TOAST ===== */
+        .toast-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            padding: 14px 24px;
+            border-radius: 12px;
+            background: #1a202c;
+            color: #fff;
+            font-weight: 500;
+            font-size: 0.92rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            animation: slideIn 0.3s ease;
+            max-width: 380px;
+        }
+
+        .toast.success {
+            background: #0b7e3d;
+        }
+        .toast.error {
+            background: #b91c1c;
+        }
+        .toast.warning {
+            background: #b45309;
+        }
+
+        @keyframes slideIn {
+            0% {
+                transform: translateX(60px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast .close-toast {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            font-size: 1.1rem;
+            margin-left: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #a0aec0;
+        }
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            display: block;
+        }
+        .empty-state p {
+            font-size: 1rem;
+        }
+
+        /* misc */
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .mt-12 {
+            margin-top: 12px;
+        }
+        .mb-12 {
+            margin-bottom: 12px;
+        }
+        .gap-8 {
+            gap: 8px;
+        }
+        .fw-600 {
+            font-weight: 600;
+        }
+        .text-muted {
+            color: #718096;
+            font-size: 0.85rem;
+        }
+        .text-center {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container" id="app">
+        <!-- HEADER -->
+        <header class="app-header">
+            <h1>
+                <i class="fas fa-building"></i>
+                Varad Vinayak CHS
+                <span class="subtitle">Maintenance Tracker</span>
+            </h1>
+            <div class="header-actions">
+                <span class="current-date" id="headerDate"></span>
+            </div>
+        </header>
+
+        <!-- TAB NAV -->
+        <nav class="tab-nav" id="tabNav">
+            <button class="tab-btn active" data-tab="dashboard">
+                <i class="fas fa-chart-pie"></i> <span>Dashboard</span>
+            </button>
+            <button class="tab-btn" data-tab="monthly">
+                <i class="fas fa-calendar-check"></i> <span>Monthly</span>
+            </button>
+            <button class="tab-btn" data-tab="expenses">
+                <i class="fas fa-wallet"></i> <span>Expenses</span>
+            </button>
+            <button class="tab-btn" data-tab="reports">
+                <i class="fas fa-file-alt"></i> <span>Reports</span>
+            </button>
+            <button class="tab-btn" data-tab="settings">
+                <i class="fas fa-cog"></i> <span>Settings</span>
+            </button>
+        </nav>
+
+        <!-- TAB CONTENT -->
+        <div class="tab-content">
+
+            <!-- ========== DASHBOARD ========== -->
+            <div class="tab-pane active" id="pane-dashboard">
+                <div class="stats-grid" id="dashStats">
+                    <!-- dynamically filled -->
+                </div>
+
+                <div class="flex-between mb-12">
+                    <h3 style="color:#2d3748;">
+                        <i class="fas fa-users" style="color:#1a5f5f;"></i>
+                        Payment Status – <span id="dashMonthLabel"></span>
+                    </h3>
+                    <button class="btn btn-sm btn-outline" onclick="markAllPaid()">
+                        <i class="fas fa-check-double"></i> Mark All Paid
+                    </button>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Member</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashPaymentTable"></tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top:20px; background:#f8fafc; border-radius:12px; padding:14px 20px; border:1px solid #edf2f7;">
+                    <div style="display:flex; flex-wrap:wrap; gap:12px; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:500; color:#2d3748;">
+                            <i class="fas fa-hand-holding-usd" style="color:#1a5f5f;"></i>
+                            Total Collected: <strong id="dashTotalCollected">₹0</strong>
+                        </span>
+                        <span style="font-weight:500; color:#2d3748;">
+                            <i class="fas fa-receipt" style="color:#b91c1c;"></i>
+                            Total Expenses: <strong id="dashTotalExpenses">₹0</strong>
+                        </span>
+                        <span style="font-weight:600; color:#0b3b3c; font-size:1.1rem; background:#e6f0f0; padding:4px 18px; border-radius:30px;">
+                            <i class="fas fa-coins"></i>
+                            Remaining: <strong id="dashRemaining">₹0</strong>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== MONTHLY ========== -->
+            <div class="tab-pane" id="pane-monthly">
+                <div class="month-selector">
+                    <div>
+                        <label style="font-weight:500; margin-right:6px;">Month:</label>
+                        <select id="monthSelect">
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-weight:500; margin-right:6px;">Year:</label>
+                        <input type="number" id="yearInput" min="2020" max="2035" style="width:90px;" />
+                    </div>
+                    <button class="btn btn-primary" onclick="loadMonthlyRecords()">
+                        <i class="fas fa-sync-alt"></i> Load
+                    </button>
+                    <button class="btn btn-success" onclick="saveMonthlyRecords()">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <span style="font-size:0.85rem; color:#718096; margin-left:auto;" id="monthlySaveStatus"></span>
+                </div>
+
+                <div style="background:#fafcff; border-radius:12px; border:1px solid #edf2f7; padding:14px 18px;">
+                    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+                        <span style="font-weight:600; color:#2d3748;">
+                            <i class="fas fa-user-edit" style="color:#1a5f5f;"></i> 
+                            Members – <span id="monthlyMemberCount">6</span>
+                        </span>
+                        <span style="font-weight:500; color:#2d3748;">
+                            Collected: <strong id="monthlyCollected">₹0</strong>
+                            &nbsp;|&nbsp; Pending: <strong id="monthlyPending">₹0</strong>
+                        </span>
+                    </div>
+                    <div id="monthlyMemberList"></div>
+                </div>
+
+                <div style="margin-top:16px; background:#f8fafc; border-radius:12px; padding:12px 18px; border:1px solid #edf2f7; display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;">
+                    <span style="font-weight:500; color:#2d3748;">
+                        <i class="fas fa-rupee-sign"></i> Maintenance Amount per Member:
+                        <strong id="displayMonthlyAmount">₹1000</strong>
+                    </span>
+                    <span style="font-weight:500; color:#0b3b3c;">
+                        Total Expected: <strong id="monthlyExpected">₹6000</strong>
+                    </span>
+                </div>
+            </div>
+
+            <!-- ========== EXPENSES ========== -->
+            <div class="tab-pane" id="pane-expenses">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="expenseDate" />
+                    </div>
+                    <div class="form-group" style="flex:2;">
+                        <label>Description</label>
+                        <input type="text" id="expenseDesc" placeholder="e.g. Electricity bill" />
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="expenseCategory">
+                            <option value="Utility">Utility</option>
+                            <option value="Repair">Repair</option>
+                            <option value="Cleaning">Cleaning</option>
+                            <option value="Security">Security</option>
+                            <option value="Misc">Misc</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Amount (₹)</label>
+                        <input type="number" id="expenseAmount" placeholder="0" min="0" step="1" />
+                    </div>
+                    <div class="form-group" style="flex:0 0 auto;">
+                        <button class="btn btn-primary" onclick="addExpense()">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-between mb-12">
+                    <h3 style="color:#2d3748;">
+                        <i class="fas fa-list-ul" style="color:#1a5f5f;"></i> All Expenses
+                    </h3>
+                    <span style="font-weight:500; color:#2d3748;">
+                        Total: <strong id="expenseTotalAll">₹0</strong>
+                    </span>
+                </div>
+
+                <div id="expenseList">
+                    <!-- dynamically filled -->
+                </div>
+            </div>
+
+            <!-- ========== REPORTS ========== -->
+            <div class="tab-pane" id="pane-reports">
+                <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:20px; align-items:center;">
+                    <h3 style="color:#2d3748;">
+                        <i class="fas fa-chart-line" style="color:#1a5f5f;"></i> Yearly Overview
+                    </h3>
+                    <select id="reportYear" style="padding:6px 12px; border:1.5px solid #e2e8f0; border-radius:8px; background:#fff;" onchange="loadReports()">
+                        <!-- filled by JS -->
+                    </select>
+                    <button class="btn btn-success" onclick="downloadExcel()">
+                        <i class="fas fa-file-excel"></i> Download Excel
+                    </button>
+                </div>
+
+                <div class="stats-grid" id="reportStats">
+                    <!-- dynamically filled -->
+                </div>
+
+                <div class="report-card">
+                    <h3><i class="fas fa-calendar-alt" style="color:#1a5f5f;"></i> Monthly Summary</h3>
+                    <div id="monthlyReportList"></div>
+                </div>
+
+                <div class="report-card">
+                    <h3><i class="fas fa-user-check" style="color:#1a5f5f;"></i> Member-wise Payment Summary</h3>
+                    <div id="memberReportGrid" class="member-report-grid"></div>
+                </div>
+            </div>
+
+            <!-- ========== SETTINGS ========== -->
+            <div class="tab-pane" id="pane-settings">
+                <div class="settings-group">
+                    <h3><i class="fas fa-rupee-sign" style="color:#1a5f5f;"></i> Monthly Maintenance Amount</h3>
+                    <div class="setting-row">
+                        <div class="form-group" style="flex:0 0 200px;">
+                            <label>Amount per Member (₹)</label>
+                            <input type="number" id="settingAmount" min="100" step="50" />
+                        </div>
+                        <button class="btn btn-primary" onclick="saveSettings()">
+                            <i class="fas fa-save"></i> Update
+                        </button>
+                        <span id="settingsStatus" class="text-muted"></span>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3><i class="fas fa-university" style="color:#1a5f5f;"></i> Bank Balance</h3>
+                    <div class="setting-row">
+                        <div class="form-group" style="flex:0 0 200px;">
+                            <label>Starting Balance (₹)</label>
+                            <input type="number" id="settingBankBalance" min="0" step="100" />
+                        </div>
+                        <button class="btn btn-primary" onclick="saveBankBalance()">
+                            <i class="fas fa-save"></i> Update
+                        </button>
+                        <span style="font-weight:500; color:#2d3748;">
+                            Current Bank Balance: <strong id="displayBankBalance">₹0</strong>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3><i class="fas fa-users" style="color:#1a5f5f;"></i> Members</h3>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;" id="memberListSettings">
+                        <!-- filled by JS -->
+                    </div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:6px;">
+                        <input type="text" id="newMemberName" placeholder="New member name" style="padding:8px 14px; border:1.5px solid #e2e8f0; border-radius:8px; flex:1; min-width:160px;" />
+                        <button class="btn btn-success" onclick="addMember()">
+                            <i class="fas fa-user-plus"></i> Add Member
+                        </button>
+                    </div>
+                </div>
+
+                <div class="settings-group" style="background:#fafcff;">
+                    <h3><i class="fas fa-database" style="color:#1a5f5f;"></i> Data Management</h3>
+                    <div style="display:flex; flex-wrap:wrap; gap:12px;">
+                        <button class="btn btn-outline" onclick="exportData()">
+                            <i class="fas fa-download"></i> Export Data (JSON)
+                        </button>
+                        <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">
+                            <i class="fas fa-upload"></i> Import Data (JSON)
+                        </button>
+                        <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)" />
+                        <button class="btn btn-danger" onclick="resetAllData()">
+                            <i class="fas fa-trash-alt"></i> Reset All Data
+                        </button>
+                    </div>
+                    <p class="text-muted" style="margin-top:10px; font-size:0.8rem;">
+                        <i class="fas fa-info-circle"></i> Data is stored locally in your browser.
+                    </p>
+                </div>
+            </div>
+
+        </div><!-- /tab-content -->
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // ============================================================
+        //  DATA LAYER
+        // ============================================================
+
+        const MEMBERS = [
+            { id: 1, name: 'Nitinkumar' },
+            { id: 2, name: 'Vikas' },
+            { id: 3, name: 'Santosh' },
+            { id: 4, name: 'Vinayak' },
+            { id: 5, name: 'Shantanu' },
+            { id: 6, name: 'Anil' }
+        ];
+
+        const DEFAULT_SETTINGS = { monthlyAmount: 1000, startingBalance: 23060 };
+
+        let appData = {
+            members: JSON.parse(JSON.stringify(MEMBERS)),
+            payments: [], // { id, memberId, month, year, amount, paid }
+            expenses: [], // { id, date, description, amount, category }
+            settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS))
+        };
+
+        let nextPaymentId = 1;
+        let nextExpenseId = 1;
+
+        // ============================================================
+        //  STORAGE
+        // ============================================================
+
+        function loadFromStorage() {
+            try {
+                const raw = localStorage.getItem('varadVinayakData');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    appData.members = parsed.members || JSON.parse(JSON.stringify(MEMBERS));
+                    appData.payments = parsed.payments || [];
+                    appData.expenses = parsed.expenses || [];
+                    appData.settings = parsed.settings || JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+                    // ensure all default members exist
+                    const existingIds = appData.members.map(m => m.id);
+                    MEMBERS.forEach(m => {
+                        if (!existingIds.includes(m.id)) {
+                            appData.members.push({ ...m });
+                        }
+                    });
+                    // fix missing ids
+                    appData.members.forEach((m, idx) => { if (!m.id) m.id = idx + 1; });
+                } else {
+                    // first time: seed with default members
+                    appData.members = JSON.parse(JSON.stringify(MEMBERS));
+                    appData.payments = [];
+                    appData.expenses = [];
+                    appData.settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+                    saveToStorage();
+                }
+            } catch (e) {
+                console.warn('Storage read error, using defaults.');
+                appData.members = JSON.parse(JSON.stringify(MEMBERS));
+                appData.payments = [];
+                appData.expenses = [];
+                appData.settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+            }
+            // compute next ids
+            if (appData.payments.length) {
+                nextPaymentId = Math.max(...appData.payments.map(p => p.id || 0)) + 1;
+            } else {
+                nextPaymentId = 1;
+            }
+            if (appData.expenses.length) {
+                nextExpenseId = Math.max(...appData.expenses.map(e => e.id || 0)) + 1;
+            } else {
+                nextExpenseId = 1;
+            }
+            // seed dues for Santosh (July-Dec 2025) and Shantanu (Jan-Jul 2026)
+            seedDues();
+        }
+
+        function saveToStorage() {
+            try {
+                localStorage.setItem('varadVinayakData', JSON.stringify(appData));
+            } catch (e) {
+                console.warn('Storage write error.');
+            }
+        }
+
+        // ============================================================
+        //  SEED DUES (specific unpaid records)
+        // ============================================================
+
+        function seedDues() {
+            // Santosh (id=3) July-Dec 2025
+            for (let m = 7; m <= 12; m++) {
+                const p = getOrCreatePayment(m, 2025, 3);
+                p.paid = false;
+                p.amount = appData.settings.monthlyAmount || 1000;
+            }
+            // Shantanu (id=5) Jan-Jul 2026
+            for (let m = 1; m <= 7; m++) {
+                const p = getOrCreatePayment(m, 2026, 5);
+                p.paid = false;
+                p.amount = appData.settings.monthlyAmount || 1000;
+            }
+            saveToStorage();
+        }
+
+        // ============================================================
+        //  HELPERS
+        // ============================================================
+
+        function getMonthYearKey(month, year) {
+            return `${year}-${String(month).padStart(2, '0')}`;
+        }
+
+        function getPaymentsForMonth(month, year) {
+            return appData.payments.filter(p => p.month === month && p.year === year);
+        }
+
+        function getPaymentForMember(month, year, memberId) {
+            return appData.payments.find(p => p.month === month && p.year === year && p.memberId === memberId);
+        }
+
+        function getOrCreatePayment(month, year, memberId) {
+            let p = getPaymentForMember(month, year, memberId);
+            if (!p) {
+                const amount = appData.settings.monthlyAmount || 1000;
+                p = {
+                    id: nextPaymentId++,
+                    memberId: memberId,
+                    month: month,
+                    year: year,
+                    amount: amount,
+                    paid: false
+                };
+                appData.payments.push(p);
+                saveToStorage();
+            }
+            return p;
+        }
+
+        function getMonthlyTotal(month, year) {
+            const payments = getPaymentsForMonth(month, year);
+            let collected = 0;
+            let pending = 0;
+            payments.forEach(p => {
+                if (p.paid) collected += p.amount;
+                else pending += p.amount;
+            });
+            // also check for members without payment record
+            const memberIds = appData.members.map(m => m.id);
+            const paidIds = payments.filter(p => p.paid).map(p => p.memberId);
+            const unpaidIds = memberIds.filter(id => !paidIds.includes(id));
+            const amount = appData.settings.monthlyAmount || 1000;
+            pending += unpaidIds.length * amount;
+            return { collected, pending, total: collected + pending };
+        }
+
+        function getExpensesForMonth(month, year) {
+            return appData.expenses.filter(e => {
+                const d = new Date(e.date);
+                return d.getMonth() + 1 === month && d.getFullYear() === year;
+            });
+        }
+
+        function getExpensesForYear(year) {
+            return appData.expenses.filter(e => {
+                const d = new Date(e.date);
+                return d.getFullYear() === year;
+            });
+        }
+
+        function getMonthlyExpenseTotal(month, year) {
+            return getExpensesForMonth(month, year).reduce((sum, e) => sum + e.amount, 0);
+        }
+
+        function getYearlyExpenseTotal(year) {
+            return getExpensesForYear(year).reduce((sum, e) => sum + e.amount, 0);
+        }
+
+        function formatCurrency(amount) {
+            return '₹' + Number(amount).toLocaleString('en-IN');
+        }
+
+        function formatDate(dateStr) {
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        function getMonthName(month) {
+            const names = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October',
+                'November', 'December'
+            ];
+            return names[month - 1] || month;
+        }
+
+        function getCurrentMonth() {
+            const d = new Date();
+            return d.getMonth() + 1;
+        }
+
+        function getCurrentYear() {
+            return new Date().getFullYear();
+        }
+
+        function getMemberName(id) {
+            const m = appData.members.find(m => m.id === id);
+            return m ? m.name : 'Unknown';
+        }
+
+        function getSortedMembers() {
+            return [...appData.members].sort((a, b) => a.id - b.id);
+        }
+
+        // ============================================================
+        //  TOAST
+        // ============================================================
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <span>${message}</span>
+                <button class="close-toast" onclick="this.parentElement.remove()">&times;</button>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                if (toast.parentElement) toast.remove();
+            }, 4500);
+        }
+
+        // ============================================================
+        //  TAB NAVIGATION
+        // ============================================================
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                const target = this.dataset.tab;
+                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+                document.getElementById('pane-' + target).classList.add('active');
+                // refresh data when switching tabs
+                if (target === 'dashboard') renderDashboard();
+                if (target === 'monthly') loadMonthlyRecords();
+                if (target === 'expenses') renderExpenses();
+                if (target === 'reports') loadReports();
+                if (target === 'settings') renderSettings();
+            });
+        });
+
+        // ============================================================
+        //  DASHBOARD
+        // ============================================================
+
+        function renderDashboard() {
+            const now = new Date();
+            const month = getCurrentMonth();
+            const year = getCurrentYear();
+            document.getElementById('dashMonthLabel').textContent = getMonthName(month) + ' ' + year;
+
+            const amount = appData.settings.monthlyAmount || 1000;
+            const members = getSortedMembers();
+            const totalExpected = members.length * amount;
+            const { collected, pending } = getMonthlyTotal(month, year);
+            const expenses = getMonthlyExpenseTotal(month, year);
+            const remaining = collected - expenses;
+
+            // Compute overall totals for bank balance
+            const totalCollectedAll = appData.payments.filter(p => p.paid).reduce((sum, p) => sum + p.amount, 0);
+            const totalExpensesAll = appData.expenses.reduce((sum, e) => sum + e.amount, 0);
+            const startingBalance = appData.settings.startingBalance || 0;
+            const bankBalance = startingBalance + totalCollectedAll - totalExpensesAll;
+
+            // stats
+            document.getElementById('dashStats').innerHTML = `
+                <div class="stat-card">
+                    <div class="label">Total Members</div>
+                    <div class="value">${members.length}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Expected Collection</div>
+                    <div class="value">${formatCurrency(totalExpected)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Collected</div>
+                    <div class="value positive">${formatCurrency(collected)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Pending</div>
+                    <div class="value ${pending > 0 ? 'warning' : 'positive'}">${formatCurrency(pending)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Expenses</div>
+                    <div class="value negative">${formatCurrency(expenses)}</div>
+                </div>
+                <div class="stat-card" style="background:${remaining >= 0 ? '#e6f0f0' : '#fde8e8'};">
+                    <div class="label">Remaining</div>
+                    <div class="value ${remaining >= 0 ? 'positive' : 'negative'}">${formatCurrency(remaining)}</div>
+                </div>
+                <div class="stat-card" style="background:#e6f0f0;">
+                    <div class="label">Bank Balance</div>
+                    <div class="value positive">${formatCurrency(bankBalance)}</div>
+                </div>
+            `;
+
+            document.getElementById('dashTotalCollected').textContent = formatCurrency(collected);
+            document.getElementById('dashTotalExpenses').textContent = formatCurrency(expenses);
+            document.getElementById('dashRemaining').textContent = formatCurrency(remaining);
+
+            // payment table
+            const tbody = document.getElementById('dashPaymentTable');
+            let html = '';
+            members.forEach((m, idx) => {
+                const p = getOrCreatePayment(month, year, m.id);
+                const isPaid = p.paid;
+                html += `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td><strong>${m.name}</strong></td>
+                        <td>${formatCurrency(p.amount)}</td>
+                        <td>
+                            <span class="badge ${isPaid ? 'success' : 'danger'}">
+                                ${isPaid ? 'Paid' : 'Not Paid'}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="toggle-paid ${isPaid ? 'paid' : 'unpaid'}" 
+                                    onclick="togglePayment(${m.id}, ${month}, ${year})" 
+                                    title="Toggle payment status">
+                                <i class="fas ${isPaid ? 'fa-check-circle' : 'fa-circle'}"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function togglePayment(memberId, month, year) {
+            const p = getOrCreatePayment(month, year, memberId);
+            p.paid = !p.paid;
+            saveToStorage();
+            renderDashboard();
+            // also refresh monthly tab if visible
+            if (document.getElementById('pane-monthly').classList.contains('active')) {
+                loadMonthlyRecords();
+            }
+            showToast(`${getMemberName(memberId)} marked as ${p.paid ? 'Paid' : 'Not Paid'}`);
+        }
+
+        function markAllPaid() {
+            const month = getCurrentMonth();
+            const year = getCurrentYear();
+            const members = getSortedMembers();
+            members.forEach(m => {
+                const p = getOrCreatePayment(month, year, m.id);
+                p.paid = true;
+            });
+            saveToStorage();
+            renderDashboard();
+            showToast('All members marked as paid for this month');
+        }
+
+        // ============================================================
+        //  MONTHLY RECORDS
+        // ============================================================
+
+        function loadMonthlyRecords() {
+            const month = parseInt(document.getElementById('monthSelect').value) || getCurrentMonth();
+            const year = parseInt(document.getElementById('yearInput').value) || getCurrentYear();
+
+            const amount = appData.settings.monthlyAmount || 1000;
+            const members = getSortedMembers();
+
+            let html = '';
+            let collected = 0;
+            let pending = 0;
+
+            members.forEach((m, idx) => {
+                const p = getOrCreatePayment(month, year, m.id);
+                // if amount changed, update
+                if (p.amount !== amount) {
+                    p.amount = amount;
+                }
+                const isPaid = p.paid;
+                if (isPaid) collected += p.amount;
+                else pending += p.amount;
+
+                html += `
+                    <div class="member-payment-row">
+                        <span class="member-name">${idx + 1}. ${m.name}</span>
+                        <div class="payment-status">
+                            <span class="amount">${formatCurrency(p.amount)}</span>
+                            <button class="toggle-paid ${isPaid ? 'paid' : 'unpaid'}" 
+                                    onclick="togglePaymentMonthly(${m.id}, ${month}, ${year})"
+                                    title="Toggle payment status">
+                                <i class="fas ${isPaid ? 'fa-check-circle' : 'fa-circle'}"></i>
+                            </button>
+                            <span class="badge ${isPaid ? 'success' : 'danger'}" style="min-width:72px;text-align:center;">
+                                ${isPaid ? 'Paid' : 'Not Paid'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('monthlyMemberList').innerHTML = html;
+            document.getElementById('monthlyCollected').textContent = formatCurrency(collected);
+            document.getElementById('monthlyPending').textContent = formatCurrency(pending);
+            document.getElementById('monthlyExpected').textContent = formatCurrency(collected + pending);
+            document.getElementById('monthlyMemberCount').textContent = members.length;
+            document.getElementById('displayMonthlyAmount').textContent = formatCurrency(amount);
+            document.getElementById('monthlySaveStatus').textContent = '✓ Loaded';
+        }
+
+        function togglePaymentMonthly(memberId, month, year) {
+            const p = getOrCreatePayment(month, year, memberId);
+            p.paid = !p.paid;
+            saveToStorage();
+            loadMonthlyRecords();
+            // also update dashboard if visible
+            if (document.getElementById('pane-dashboard').classList.contains('active')) {
+                renderDashboard();
+            }
+            showToast(`${getMemberName(memberId)} → ${p.paid ? 'Paid' : 'Not Paid'}`);
+        }
+
+        function saveMonthlyRecords() {
+            const month = parseInt(document.getElementById('monthSelect').value) || getCurrentMonth();
+            const year = parseInt(document.getElementById('yearInput').value) || getCurrentYear();
+            // just ensure all payments exist with correct amount
+            const amount = appData.settings.monthlyAmount || 1000;
+            const members = getSortedMembers();
+            members.forEach(m => {
+                const p = getOrCreatePayment(month, year, m.id);
+                p.amount = amount;
+            });
+            saveToStorage();
+            document.getElementById('monthlySaveStatus').textContent = '✓ Saved at ' + new Date().toLocaleTimeString();
+            showToast('Monthly records saved successfully');
+            loadMonthlyRecords();
+            if (document.getElementById('pane-dashboard').classList.contains('active')) {
+                renderDashboard();
+            }
+        }
+
+        // ============================================================
+        //  EXPENSES
+        // ============================================================
+
+        function renderExpenses() {
+            const list = document.getElementById('expenseList');
+            if (appData.expenses.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-receipt" style="color:#cbd5e1;"></i>
+                        <p>No expenses recorded yet. Add one above!</p>
+                    </div>
+                `;
+                document.getElementById('expenseTotalAll').textContent = formatCurrency(0);
+                return;
+            }
+
+            // sort by date desc
+            const sorted = [...appData.expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+            let html = '';
+            let total = 0;
+            sorted.forEach(e => {
+                total += e.amount;
+                html += `
+                    <div class="expense-item">
+                        <div class="expense-detail">
+                            <span class="date">${formatDate(e.date)}</span>
+                            <span class="desc">${e.description}</span>
+                            <span class="category">${e.category || 'Misc'}</span>
+                        </div>
+                        <div class="expense-amount">${formatCurrency(e.amount)}</div>
+                        <div class="expense-actions">
+                            <button class="btn-icon" onclick="deleteExpense(${e.id})" title="Delete">
+                                <i class="fas fa-trash-alt" style="color:#b91c1c;"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            list.innerHTML = html;
+            document.getElementById('expenseTotalAll').textContent = formatCurrency(total);
+        }
+
+        function addExpense() {
+            const date = document.getElementById('expenseDate').value;
+            const desc = document.getElementById('expenseDesc').value.trim();
+            const category = document.getElementById('expenseCategory').value;
+            const amount = parseFloat(document.getElementById('expenseAmount').value);
+
+            if (!date) { showToast('Please select a date', 'error'); return; }
+            if (!desc) { showToast('Please enter a description', 'error'); return; }
+            if (!amount || amount <= 0) { showToast('Please enter a valid amount', 'error'); return; }
+
+            const expense = {
+                id: nextExpenseId++,
+                date: date,
+                description: desc,
+                category: category,
+                amount: amount
+            };
+            appData.expenses.push(expense);
+            saveToStorage();
+
+            // clear fields
+            document.getElementById('expenseDesc').value = '';
+            document.getElementById('expenseAmount').value = '';
+            document.getElementById('expenseDate').value = '';
+
+            renderExpenses();
+            if (document.getElementById('pane-dashboard').classList.contains('active')) renderDashboard();
+            showToast('Expense added: ' + desc);
+        }
+
+        function deleteExpense(id) {
+            if (!confirm('Delete this expense?')) return;
+            appData.expenses = appData.expenses.filter(e => e.id !== id);
+            saveToStorage();
+            renderExpenses();
+            if (document.getElementById('pane-dashboard').classList.contains('active')) renderDashboard();
+            showToast('Expense deleted');
+        }
+
+        // ============================================================
+        //  REPORTS
+        // ============================================================
+
+        function loadReports() {
+            const year = parseInt(document.getElementById('reportYear').value) || getCurrentYear();
+
+            // populate year dropdown
+            const yearSelect = document.getElementById('reportYear');
+            const currentYear = getCurrentYear();
+            const years = [];
+            for (let y = currentYear - 5; y <= currentYear + 1; y++) {
+                years.push(y);
+            }
+            yearSelect.innerHTML = years.map(y =>
+                `<option value="${y}" ${y === year ? 'selected' : ''}>${y}</option>`
+            ).join('');
+
+            // yearly stats
+            const members = getSortedMembers();
+            const amount = appData.settings.monthlyAmount || 1000;
+            let totalExpectedYear = 0;
+            let totalCollectedYear = 0;
+            let totalPendingYear = 0;
+
+            for (let m = 1; m <= 12; m++) {
+                const { collected, pending } = getMonthlyTotal(m, year);
+                totalCollectedYear += collected;
+                totalPendingYear += pending;
+            }
+            totalExpectedYear = members.length * amount * 12;
+            const totalExpensesYear = getYearlyExpenseTotal(year);
+            const remainingYear = totalCollectedYear - totalExpensesYear;
+
+            // compute bank balance
+            const totalCollectedAll = appData.payments.filter(p => p.paid).reduce((sum, p) => sum + p.amount, 0);
+            const totalExpensesAll = appData.expenses.reduce((sum, e) => sum + e.amount, 0);
+            const startingBalance = appData.settings.startingBalance || 0;
+            const bankBalance = startingBalance + totalCollectedAll - totalExpensesAll;
+
+            document.getElementById('reportStats').innerHTML = `
+                <div class="stat-card">
+                    <div class="label">Year</div>
+                    <div class="value" style="font-size:1.4rem;">${year}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Expected (Yearly)</div>
+                    <div class="value">${formatCurrency(totalExpectedYear)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Collected</div>
+                    <div class="value positive">${formatCurrency(totalCollectedYear)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Pending</div>
+                    <div class="value ${totalPendingYear > 0 ? 'warning' : 'positive'}">${formatCurrency(totalPendingYear)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Expenses</div>
+                    <div class="value negative">${formatCurrency(totalExpensesYear)}</div>
+                </div>
+                <div class="stat-card" style="background:${remainingYear >= 0 ? '#e6f0f0' : '#fde8e8'};">
+                    <div class="label">Remaining</div>
+                    <div class="value ${remainingYear >= 0 ? 'positive' : 'negative'}">${formatCurrency(remainingYear)}</div>
+                </div>
+                <div class="stat-card" style="background:#e6f0f0;">
+                    <div class="label">Bank Balance (Overall)</div>
+                    <div class="value positive">${formatCurrency(bankBalance)}</div>
+                </div>
+            `;
+
+            // monthly summary
+            const monthlyList = document.getElementById('monthlyReportList');
+            let monthlyHtml = '';
+            for (let m = 1; m <= 12; m++) {
+                const { collected, pending } = getMonthlyTotal(m, year);
+                const expenses = getMonthlyExpenseTotal(m, year);
+                const remaining = collected - expenses;
+                monthlyHtml += `
+                    <div class="report-row">
+                        <span class="label">${getMonthName(m)}</span>
+                        <span>
+                            <span style="color:#0b7e3d;">${formatCurrency(collected)}</span>
+                            <span style="color:#718096;"> / </span>
+                            <span style="color:#b91c1c;">${formatCurrency(expenses)}</span>
+                            <span style="color:#718096;"> → </span>
+                            <span class="value ${remaining >= 0 ? 'positive' : 'negative'}">${formatCurrency(remaining)}</span>
+                        </span>
+                    </div>
+                `;
+            }
+            monthlyList.innerHTML = monthlyHtml;
+
+            // member-wise summary
+            const memberGrid = document.getElementById('memberReportGrid');
+            let memberHtml = '';
+            members.forEach(m => {
+                let paidCount = 0;
+                let unpaidCount = 0;
+                let totalPaid = 0;
+                let totalDue = 0;
+                for (let mo = 1; mo <= 12; mo++) {
+                    const p = getPaymentForMember(mo, year, m.id);
+                    if (p) {
+                        if (p.paid) { paidCount++;
+                            totalPaid += p.amount; }
+                        else { unpaidCount++;
+                            totalDue += p.amount; }
+                    } else {
+                        unpaidCount++;
+                        totalDue += amount;
+                    }
+                }
+                const totalExpectedMember = amount * 12;
+                memberHtml += `
+                    <div class="member-report-item">
+                        <div class="name">${m.name}</div>
+                        <div class="stats">
+                            <span class="paid-count">✓ ${paidCount}</span>
+                            <span class="unpaid-count">✗ ${unpaidCount}</span>
+                            <br>
+                            <span style="font-weight:500;">${formatCurrency(totalPaid)}</span>
+                            <span style="color:#718096;"> / </span>
+                            <span style="color:#b91c1c;">${formatCurrency(totalExpectedMember)}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            memberGrid.innerHTML = memberHtml;
+        }
+
+        // ============================================================
+        //  EXCEL EXPORT
+        // ============================================================
+
+        function downloadExcel() {
+            const year = parseInt(document.getElementById('reportYear').value) || getCurrentYear();
+            const members = getSortedMembers();
+            const amount = appData.settings.monthlyAmount || 1000;
+
+            // 1. Summary sheet
+            const summaryData = [
+                ['Varad Vinayak CHS - Yearly Report', year],
+                [],
+                ['Bank Balance'],
+                ['Starting Balance', appData.settings.startingBalance || 0],
+                ['Total Collected (All Time)', appData.payments.filter(p => p.paid).reduce((s, p) => s + p.amount, 0)],
+                ['Total Expenses (All Time)', appData.expenses.reduce((s, e) => s + e.amount, 0)],
+                ['Current Bank Balance', (appData.settings.startingBalance || 0) + appData.payments.filter(p => p.paid).reduce((s,
+                    p) => s + p.amount, 0) - appData.expenses.reduce((s, e) => s + e.amount, 0)],
+                [],
+                ['Yearly Summary', year],
+                ['Total Expected', members.length * amount * 12],
+                ['Total Collected', (() => { let c = 0; for (let m = 1; m <= 12; m++) { c += getMonthlyTotal(m, year)
+                            .collected; } return c; })()],
+                ['Total Pending', (() => { let p = 0; for (let m = 1; m <= 12; m++) { p += getMonthlyTotal(m, year)
+                            .pending; } return p; })()],
+                ['Total Expenses', getYearlyExpenseTotal(year)],
+                ['Net Remaining', (() => { let c = 0,
+                        e = getYearlyExpenseTotal(year); for (let m = 1; m <= 12; m++) { c += getMonthlyTotal(m, year)
+                            .collected; } return c - e; })()]
+            ];
+            const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+
+            // 2. Monthly Breakdown sheet
+            const monthlyRows = [
+                ['Month', 'Collected', 'Expenses', 'Remaining']
+            ];
+            for (let m = 1; m <= 12; m++) {
+                const { collected } = getMonthlyTotal(m, year);
+                const expenses = getMonthlyExpenseTotal(m, year);
+                monthlyRows.push([getMonthName(m), collected, expenses, collected - expenses]);
+            }
+            const wsMonthly = XLSX.utils.aoa_to_sheet(monthlyRows);
+
+            // 3. Member Dues sheet
+            const memberRows = [
+                ['Member', ...Array.from({ length: 12 }, (_, i) => getMonthName(i + 1)), 'Paid Count', 'Unpaid Count',
+                    'Total Paid', 'Total Due'
+                ]
+            ];
+            members.forEach(m => {
+                const row = [m.name];
+                let paidCount = 0,
+                    unpaidCount = 0,
+                    totalPaid = 0,
+                    totalDue = 0;
+                for (let mo = 1; mo <= 12; mo++) {
+                    const p = getPaymentForMember(mo, year, m.id);
+                    if (p) {
+                        if (p.paid) {
+                            row.push('Paid');
+                            paidCount++;
+                            totalPaid += p.amount;
+                        } else {
+                            row.push('Unpaid');
+                            unpaidCount++;
+                            totalDue += p.amount;
+                        }
+                    } else {
+                        row.push('Unpaid');
+                        unpaidCount++;
+                        totalDue += amount;
+                    }
+                }
+                row.push(paidCount, unpaidCount, totalPaid, totalDue);
+                memberRows.push(row);
+            });
+            const wsMembers = XLSX.utils.aoa_to_sheet(memberRows);
+
+            // 4. Expenses sheet
+            const expenseRows = [
+                ['Date', 'Description', 'Category', 'Amount']
+            ];
+            const sortedExp = [...appData.expenses].sort((a, b) => new Date(a.date) - new Date(b.date));
+            sortedExp.forEach(e => {
+                expenseRows.push([formatDate(e.date), e.description, e.category || 'Misc', e.amount]);
+            });
+            const wsExpenses = XLSX.utils.aoa_to_sheet(expenseRows);
+
+            // Workbook
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+            XLSX.utils.book_append_sheet(wb, wsMonthly, 'Monthly');
+            XLSX.utils.book_append_sheet(wb, wsMembers, 'Member Dues');
+            XLSX.utils.book_append_sheet(wb, wsExpenses, 'Expenses');
+
+            // Write and download
+            XLSX.writeFile(wb, `VaradVinayak_Report_${year}.xlsx`);
+            showToast('Excel report downloaded successfully!');
+        }
+
+        // ============================================================
+        //  SETTINGS
+        // ============================================================
+
+        function renderSettings() {
+            document.getElementById('settingAmount').value = appData.settings.monthlyAmount || 1000;
+            document.getElementById('settingBankBalance').value = appData.settings.startingBalance || 0;
+            // display current bank balance
+            const totalCollectedAll = appData.payments.filter(p => p.paid).reduce((sum, p) => sum + p.amount, 0);
+            const totalExpensesAll = appData.expenses.reduce((sum, e) => sum + e.amount, 0);
+            const startingBalance = appData.settings.startingBalance || 0;
+            const bankBalance = startingBalance + totalCollectedAll - totalExpensesAll;
+            document.getElementById('displayBankBalance').textContent = formatCurrency(bankBalance);
+
+            const list = document.getElementById('memberListSettings');
+            list.innerHTML = getSortedMembers().map(m =>
+                `<span style="background:#edf2f7; padding:4px 14px; border-radius:30px; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px;">
+                    ${m.name}
+                    <button onclick="removeMember(${m.id})" style="background:none; border:none; color:#b91c1c; cursor:pointer; font-size:1rem;" title="Remove">×</button>
+                </span>`
+            ).join('');
+            document.getElementById('settingsStatus').textContent = '';
+        }
+
+        function saveSettings() {
+            const amount = parseFloat(document.getElementById('settingAmount').value);
+            if (!amount || amount < 50) {
+                showToast('Please enter a valid amount (min ₹50)', 'error');
+                return;
+            }
+            appData.settings.monthlyAmount = amount;
+            saveToStorage();
+            document.getElementById('settingsStatus').textContent = '✓ Updated at ' + new Date().toLocaleTimeString();
+            showToast('Maintenance amount updated to ' + formatCurrency(amount));
+            renderSettings();
+            if (document.getElementById('pane-dashboard').classList.contains('active')) renderDashboard();
+            if (document.getElementById('pane-monthly').classList.contains('active')) loadMonthlyRecords();
+        }
+
+        function saveBankBalance() {
+            const bal = parseFloat(document.getElementById('settingBankBalance').value);
+            if (isNaN(bal) || bal < 0) {
+                showToast('Please enter a valid positive number', 'error');
+                return;
+            }
+            appData.settings.startingBalance = bal;
+            saveToStorage();
+            showToast('Starting balance updated to ' + formatCurrency(bal));
+            renderSettings();
+            if (document.getElementById('pane-dashboard').classList.contains('active')) renderDashboard();
+            if (document.getElementById('pane-reports').classList.contains('active')) loadReports();
+        }
+
+        function addMember() {
+            const name = document.getElementById('newMemberName').value.trim();
+            if (!name) { showToast('Please enter a name', 'error'); return; }
+            if (appData.members.some(m => m.name.toLowerCase() === name.toLowerCase())) {
+                showToast('Member already exists', 'warning');
+                return;
+            }
+            const newId = Math.max(...appData.members.map(m => m.id), 0) + 1;
+            appData.members.push({ id: newId, name: name });
+            saveToStorage();
+            document.getElementById('newMemberName').value = '';
+            renderSettings();
+            showToast('Member added: ' + name);
+            if (document.getElementById('pane-dashboard').classList.contains('active')) renderDashboard();
+            if (document.getElementById('pane-monthly').classList.contains('active')) loadMonthlyRecords();
+            if (document.getElementById('pane-reports').classList.contains('active')) loadReports();
+        }
+
+        function removeMember(id) {
+            const member = appData.members.find(m => m.id === id);
+            if (!member) return;
+            // check if it's a default member (id <= 6)
+            if (id <= 6) {
+                showToast('Cannot remove default members', 'warning');
+                return;
+            }
+            if (!confirm(`Remove "${member.name}" from the society?`)) return;
+            appData.members = appData.members.filter(m => m.id !== id);
+            // remove their payments
+            appData.payments = appData.payments.filter(p => p.memberId !== id);
+            saveToStorage();
+            renderSettings();
+            showToast('Member removed: ' + member.name);
+            if (document.getElementById('pane-dashboard').classList.contains('active')) renderDashboard();
+            if (document.getElementById('pane-monthly').classList.contains('active')) loadMonthlyRecords();
+            if (document.getElementById('pane-reports').classList.contains('active')) loadReports();
+        }
+
+        // ============================================================
+        //  DATA MANAGEMENT
+        // ============================================================
+
+        function exportData() {
+            const data = JSON.stringify(appData, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `varad_vinayak_data_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Data exported successfully');
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.members && data.payments !== undefined && data.expenses !== undefined && data.settings) {
+                        if (!confirm('This will replace all current data. Are you sure?')) return;
+                        appData.members = data.members;
+                        appData.payments = data.payments || [];
+                        appData.expenses = data.expenses || [];
+                        appData.settings = data.settings || DEFAULT_SETTINGS;
+                        // recompute ids
+                        if (appData.payments.length) nextPaymentId = Math.max(...appData.payments.map(p => p.id || 0)) +
+                        1;
+                        else nextPaymentId = 1;
+                        if (appData.expenses.length) nextExpenseId = Math.max(...appData.expenses.map(e => e.id || 0)) +
+                        1;
+                        else nextExpenseId = 1;
+                        saveToStorage();
+                        showToast('Data imported successfully!');
+                        renderAll();
+                    } else {
+                        showToast('Invalid data format', 'error');
+                    }
+                } catch (err) {
+                    showToast('Error reading file: ' + err.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function resetAllData() {
+            if (!confirm('⚠️ This will delete ALL data. Are you sure?')) return;
+            if (!confirm('Really? This cannot be undone!')) return;
+            appData.members = JSON.parse(JSON.stringify(MEMBERS));
+            appData.payments = [];
+            appData.expenses = [];
+            appData.settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+            nextPaymentId = 1;
+            nextExpenseId = 1;
+            saveToStorage();
+            renderAll();
+            showToast('All data has been reset');
+        }
+
+        // ============================================================
+        //  RENDER ALL
+        // ============================================================
+
+        function renderAll() {
+            renderDashboard();
+            loadMonthlyRecords();
+            renderExpenses();
+            loadReports();
+            renderSettings();
+        }
+
+        // ============================================================
+        //  INIT
+        // ============================================================
+
+        function init() {
+            loadFromStorage();
+
+            // set header date
+            const now = new Date();
+            document.getElementById('headerDate').textContent =
+                now.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+
+            // set month/year inputs
+            document.getElementById('monthSelect').value = getCurrentMonth();
+            document.getElementById('yearInput').value = getCurrentYear();
+
+            // set expense date default to today
+            document.getElementById('expenseDate').value = now.toISOString().slice(0, 10);
+
+            // set report year
+            document.getElementById('reportYear').value = getCurrentYear();
+
+            // render everything
+            renderAll();
+
+            // auto-save monthly when switching month/year
+            document.getElementById('monthSelect').addEventListener('change', function() {
+                // just reload
+                loadMonthlyRecords();
+            });
+            document.getElementById('yearInput').addEventListener('change', function() {
+                loadMonthlyRecords();
+            });
+        }
+
+        // run
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
